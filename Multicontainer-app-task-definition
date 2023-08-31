@@ -1,0 +1,114 @@
+{
+  "family": "web-service-task",
+  "requiresCompatibilities": ["FARGATE"],
+  "networkMode": "awsvpc",
+  "memory": "3 GB",
+  "cpu": "1 vCPU",
+  "executionRoleArn": "arn:aws:iam::******:role/ecsTaskExecutionRole", 
+  "containerDefinitions": [
+    {
+      "name": "postgres",
+      "image": "postgres:13",
+      "essential": true,
+      "memory": 512,
+      "portMappings": [
+        {
+          "containerPort": 5432,
+          "hostPort": 5432
+        }
+      ],
+      "environment": [
+        {
+          "name": "POSTGRES_USER",
+          "value": "postgres"
+        },
+        {
+          "name": "POSTGRES_PASSWORD",
+          "value": "postgres"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "postgres_volume",
+          "containerPath": "/var/lib/postgresql/data"
+        }
+      ]
+    },
+    {
+      "name": "redis",
+      "image": "redis:6-alpine",
+      "essential": true,
+      "memory": 128,
+      "portMappings": [
+        {
+          "containerPort": 6379,
+          "hostPort": 6379
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "redis_volume",
+          "containerPath": "/data"
+        }
+      ]
+    },
+    {
+      "name": "backend",
+      "image": "phemieny7/dauntless-backend:latest",
+      "essential": true,
+      "memory": 512,
+      "portMappings": [
+        {
+          "containerPort": 3333,
+          "hostPort": 3333
+        },
+        {
+          "containerPort": 9229,
+          "hostPort": 9229
+        }
+      ],
+       "environment": [
+        {
+          "name": "HOST",
+          "value": "0.0.0.0"
+        }
+        // other env are here
+        
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "efs_volume",
+          "containerPath": "/home/node/app"
+        }
+      ],
+      "command": [
+        "dumb-init",
+        "node",
+        "ace",
+        "serve",
+        "--watch",
+        "--node-args=\"--inspect=0.0.0.0\""
+      ]
+    }
+  ],
+  "volumes": [
+    {
+      "name": "postgres_volume",
+      "host": {
+        "sourcePath": "/ecs/postgres"
+      }
+    },
+    {
+      "name": "redis_volume",
+      "host": {
+        "sourcePath": "/ecs/redis"
+      }
+    },
+    {
+      "name": "efs_volume",
+      "host": {
+        "sourcePath": "/ecs/app"
+      }
+    }
+  ]
+}
